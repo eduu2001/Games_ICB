@@ -1,0 +1,577 @@
+document.addEventListener("DOMContentLoaded", () => {
+    
+
+    const viewHero = document.getElementById("view-hero");
+    const viewMenu = document.getElementById("view-menu");
+    const viewGame = document.getElementById("view-game");
+
+    const showView = (viewName) => {
+        viewHero.classList.add("d-none");
+        viewMenu.classList.add("d-none");
+        viewGame.classList.add("d-none");
+
+        if (viewName === "hero") viewHero.classList.remove("d-none");
+        if (viewName === "menu") viewMenu.classList.remove("d-none");
+        if (viewName === "game") viewGame.classList.remove("d-none");
+    };
+
+    document.getElementById("btn-start").addEventListener("click", () => showView("menu"));
+    document.getElementById("btn-back-menu").addEventListener("click", () => showView("menu"));
+    document.getElementById("logo-home").addEventListener("click", () => showView("hero"));
+
+    window.abrirJuego = (gameId) => {
+        document.querySelectorAll(".game-instance").forEach(el => el.classList.add("d-none"));
+        const targetGame = document.getElementById(`game-${gameId}`);
+        if (targetGame) targetGame.classList.remove("d-none");
+        showView("game");
+
+        if(gameId === 'adivina') initAdivina();
+        if(gameId === 'ppt') initPPT();
+        if(gameId === 'reaccion') { 
+            document.getElementById("btn-reaccion-start").classList.remove("d-none"); 
+            document.getElementById("btn-reaccion-start").innerText = "COMENZAR";
+            document.getElementById("reaccion-box").className = "bg-danger text-white d-flex align-items-center justify-content-center mx-auto rounded-4 shadow user-select-none";
+            document.getElementById("reaccion-box").innerText = "ESPERA...";
+            document.getElementById("reaccion-mensaje").innerText = "¡Presiona Comenzar!";
+        }
+        if(gameId === 'trivia') initTrivia();
+        if(gameId === 'reflejos') {
+            document.getElementById("btn-reflejos-start").classList.remove("d-none");
+            document.getElementById("reflejos-target").classList.add("d-none");
+        }
+        if(gameId === 'rapidas') {
+            document.getElementById("btn-rapidas-start").classList.remove("d-none");
+            document.getElementById("rapidas-input").disabled = true;
+            document.getElementById("btn-rapidas-submit").disabled = true;
+        }
+        if(gameId === 'tictactoe') initTicTacToe();
+        if(gameId === 'snake') initSnakeUI();
+        if(gameId === 'whack') initWhackUI();
+    };
+
+    let contadorGlobal = 0;
+    const displayContador = document.getElementById("global-contador-display");
+
+    document.getElementById("global-btn-restar").addEventListener("click", () => {
+        contadorGlobal--;
+        actualizarContadorGlobal();
+    });
+    
+    document.getElementById("global-btn-sumar").addEventListener("click", () => {
+        contadorGlobal++;
+        actualizarContadorGlobal();
+    });
+
+
+    const actualizarContadorGlobal = () => {
+        displayContador.innerText = contadorGlobal;
+        displayContador.className = "mx-3 fw-bold fs-4 text-white font-monospace"; 
+        
+        if(contadorGlobal > 0) {
+            displayContador.classList.add("text-success");
+        } else if(contadorGlobal < 0) {
+            displayContador.classList.add("text-danger");
+        }
+    };
+
+
+    let numeroSecreto, intentosRestantes;
+    
+    const initAdivina = () => {
+        numeroSecreto = Math.floor(Math.random() * 100) + 1; 
+        intentosRestantes = 5; 
+        
+        document.getElementById("adivina-intentos").innerText = intentosRestantes;
+        document.getElementById("adivina-mensaje").innerHTML = "...";
+        document.getElementById("adivina-input").value = "";
+        document.getElementById("adivina-input").disabled = false;
+        document.getElementById("btn-adivinar").disabled = false;
+        document.getElementById("adivina-restart-container").innerHTML = "";
+    };
+
+    const procesarAdivinanza = () => {
+        const inputVal = parseInt(document.getElementById("adivina-input").value); 
+        const msg = document.getElementById("adivina-mensaje");
+
+        if (isNaN(inputVal) || inputVal < 1 || inputVal > 100) {
+            msg.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle"></i> Ingresa un número del 1 al 100.</span>`;
+            return;
+        }
+
+        intentosRestantes--;
+        document.getElementById("adivina-intentos").innerText = intentosRestantes;
+
+        if (inputVal === numeroSecreto) {
+            msg.innerHTML = `<span class="text-success fs-3 fw-bold"><i class="bi bi-trophy-fill"></i> ¡GANASTE! El número era ${numeroSecreto}.</span>`;
+            terminarAdivina();
+        } else if (intentosRestantes === 0) {
+            msg.innerHTML = `<span class="text-danger fs-3 fw-bold"><i class="bi bi-skull-fill"></i> ¡GAME OVER! El número era ${numeroSecreto}.</span>`;
+            terminarAdivina();
+        } else {
+            const pista = inputVal < numeroSecreto ? "MUY BAJO <i class='bi bi-arrow-up-circle-fill'></i>" : "MUY ALTO <i class='bi bi-arrow-down-circle-fill'></i>";
+            msg.innerHTML = `<span class="text-info fs-5">Tu número es ${pista}</span>`;
+        }
+        
+        document.getElementById("adivina-input").value = "";
+        document.getElementById("adivina-input").focus();
+    };
+
+    const terminarAdivina = () => {
+        document.getElementById("adivina-input").disabled = true;
+        document.getElementById("btn-adivinar").disabled = true;
+        document.getElementById("adivina-restart-container").innerHTML = `
+            <button class="btn btn-warning px-4 py-2 fw-bold rounded-pill shadow" onclick="abrirJuego('adivina')">
+                <i class="bi bi-arrow-clockwise"></i> JUGAR DE NUEVO
+            </button>`;
+    };
+
+    document.getElementById("btn-adivinar").addEventListener("click", procesarAdivinanza);
+    document.getElementById("adivina-input").addEventListener("keypress", (e) => {
+        if (e.key === "Enter" && intentosRestantes > 0) procesarAdivinanza();
+    });
+
+
+    const initPPT = () => {
+        document.getElementById("ppt-cpu").innerHTML = `CPU: <span class="spinner-grow spinner-grow-sm text-info"></span> Esperando jugada...`;
+        document.getElementById("ppt-resultado").innerHTML = `Elige tu arma`;
+    };
+
+    window.jugarPPT = (jugadaUsuario) => {
+        const opciones = ["piedra", "papel", "tijera"]; 
+        const emojis = { piedra: "✊", papel: "✋", tijera: "✌️" };
+        
+
+        const jugadaCPU = opciones[Math.floor(Math.random() * 3)];
+        
+        document.getElementById("ppt-cpu").innerHTML = `CPU eligió: <span class="fs-1 ms-2">${emojis[jugadaCPU]}</span>`;
+        const res = document.getElementById("ppt-resultado");
+
+        if (jugadaUsuario === jugadaCPU) {
+            res.innerHTML = `<span class="text-warning">¡EMPATE! </span>`;
+        } else if (
+            (jugadaUsuario === "piedra" && jugadaCPU === "tijera") || 
+            (jugadaUsuario === "papel" && jugadaCPU === "piedra") || 
+            (jugadaUsuario === "tijera" && jugadaCPU === "papel")
+        ) {
+            res.innerHTML = `<span class="text-success display-6 fw-bold">¡VICTORIA! 🏆</span>`;
+        } else {
+            res.innerHTML = `<span class="text-danger display-6 fw-bold">¡DERROTA! 💀</span>`;
+        }
+    };
+
+
+    let timerReaccion, startTime;
+    let esperandoClic = false;
+    const boxReaccion = document.getElementById("reaccion-box");
+    const msgReaccion = document.getElementById("reaccion-mensaje");
+    const btnReaccion = document.getElementById("btn-reaccion-start");
+
+    window.iniciarReaccion = () => {
+        btnReaccion.classList.add("d-none");
+        boxReaccion.className = "bg-danger text-white d-flex align-items-center justify-content-center mx-auto rounded-4 shadow user-select-none";
+        boxReaccion.innerText = "ESPERA...";
+        msgReaccion.innerText = "Preparado...";
+        esperandoClic = false;
+
+        const randomTime = Math.floor(Math.random() * 3000) + 1500; 
+        
+        timerReaccion = setTimeout(() => {
+            boxReaccion.className = "bg-success text-white d-flex align-items-center justify-content-center mx-auto rounded-4 shadow user-select-none";
+            boxReaccion.innerText = "¡CLIC AHORA!";
+            startTime = Date.now();
+            esperandoClic = true;
+        }, randomTime);
+    };
+
+    boxReaccion.addEventListener("click", () => {
+        if(btnReaccion.classList.contains("d-none")) {
+            if (!esperandoClic) {
+                clearTimeout(timerReaccion);
+                msgReaccion.innerHTML = "<span class='text-danger'>¡Muy pronto! Perdiste.</span>";
+                boxReaccion.innerText = "FALSO INICIO";
+                btnReaccion.classList.remove("d-none");
+                btnReaccion.innerText = "REINTENTAR";
+            } else {
+                const reactionTime = Date.now() - startTime; 
+                msgReaccion.innerHTML = `<span class="text-info">Tu tiempo: <strong>${reactionTime} ms</strong></span>`; // Mostrar resultado [cite: 172]
+                boxReaccion.innerText = "¡EXCELENTE!";
+                esperandoClic = false;
+                btnReaccion.classList.remove("d-none");
+                btnReaccion.innerText = "JUGAR DE NUEVO";
+            }
+        }
+    });
+
+
+    const preguntasTrivia = [
+        { q: "¿Qué molécula almacena la información genética?", options: ["Proteína", "ADN", "ARN", "Lípido"], ans: 1 },
+        { q: "¿Qué lenguaje es popular en análisis genómico?", options: ["Python", "HTML", "C++", "Java"], ans: 0 },
+        { q: "¿Qué base nitrogenada NO está en el ADN?", options: ["Citosina", "Guanina", "Uracilo", "Timina"], ans: 2 },
+        { q: "¿Cuál es el proceso de ADN a ARN?", options: ["Traducción", "Mutación", "Replicación", "Transcripción"], ans: 3 },
+        { q: "¿Quiénes descubrieron la estructura doble hélice?", options: ["Mendel", "Watson y Crick", "Darwin", "Pasteur"], ans: 1 }
+    ]; 
+    
+    let currentTrivia = 0;
+    let scoreTrivia = 0;
+
+    const initTrivia = () => {
+        currentTrivia = 0;
+        scoreTrivia = 0;
+        document.getElementById("trivia-score").innerText = scoreTrivia;
+        document.getElementById("trivia-restart").innerHTML = "";
+        mostrarPreguntaTrivia();
+    };
+
+    const mostrarPreguntaTrivia = () => {
+        if (currentTrivia >= preguntasTrivia.length) {
+            document.getElementById("trivia-pregunta").innerText = `¡Juego Terminado!`;
+            document.getElementById("trivia-opciones").innerHTML = `<h3 class="text-info">Tu puntaje final: ${scoreTrivia}/${preguntasTrivia.length}</h3>`; // Puntaje final [cite: 177]
+            document.getElementById("trivia-restart").innerHTML = `<button class="btn btn-warning rounded-pill px-4 fw-bold" onclick="initTrivia()">JUGAR DE NUEVO</button>`;
+            return;
+        }
+
+        const data = preguntasTrivia[currentTrivia];
+        document.getElementById("trivia-pregunta").innerText = `${currentTrivia + 1}. ${data.q}`;
+        
+        let htmlOpciones = "";
+        data.options.forEach((opt, index) => {
+            htmlOpciones += `<button class="btn btn-outline-light text-start py-2 px-3 fw-bold" onclick="verificarTrivia(${index})">${opt}</button>`; // Opciones de respuesta [cite: 175]
+        });
+        document.getElementById("trivia-opciones").innerHTML = htmlOpciones;
+    };
+
+    window.verificarTrivia = (selectedIndex) => {
+        if (selectedIndex === preguntasTrivia[currentTrivia].ans) { 
+            scoreTrivia++;
+            document.getElementById("trivia-score").innerText = scoreTrivia;
+        }
+        currentTrivia++;
+        mostrarPreguntaTrivia();
+    };
+
+    let scoreReflejos = 0;
+    let timerReflejos = 30;
+    let intervalReflejos, intervalTarget;
+
+    window.iniciarReflejos = () => {
+        document.getElementById("btn-reflejos-start").classList.add("d-none");
+        scoreReflejos = 0;
+        timerReflejos = 30;
+        document.getElementById("reflejos-puntos").innerText = scoreReflejos;
+        document.getElementById("reflejos-tiempo").innerText = timerReflejos;
+        
+        const target = document.getElementById("reflejos-target");
+        target.classList.remove("d-none");
+
+        intervalReflejos = setInterval(() => {
+            timerReflejos--;
+            document.getElementById("reflejos-tiempo").innerText = timerReflejos;
+            if (timerReflejos <= 0) {
+                clearInterval(intervalReflejos);
+                clearInterval(intervalTarget);
+                target.classList.add("d-none");
+                document.getElementById("btn-reflejos-start").classList.remove("d-none");
+                document.getElementById("btn-reflejos-start").innerText = "REINTENTAR";
+                alert(`¡Tiempo! Lograste ${scoreReflejos} puntos.`); 
+            }
+        }, 1000);
+
+        moverTargetReflejos();
+    };
+
+    const moverTargetReflejos = () => {
+        const area = document.getElementById("reflejos-area");
+        const target = document.getElementById("reflejos-target");
+        
+        const maxX = area.clientWidth - 50;
+        const maxY = area.clientHeight - 50;
+        const randomX = Math.floor(Math.random() * maxX);
+        const randomY = Math.floor(Math.random() * maxY);
+
+        target.style.left = randomX + "px"; 
+        target.style.top = randomY + "px";
+
+        clearInterval(intervalTarget);
+        intervalTarget = setInterval(moverTargetReflejos, 1200);
+    };
+
+    document.getElementById("reflejos-target").addEventListener("click", () => { 
+        scoreReflejos++;
+        document.getElementById("reflejos-puntos").innerText = scoreReflejos;
+        moverTargetReflejos(); 
+    });
+
+    const preguntasRapidas = [
+        { q: "¿Cuánto es 8 x 7?", a: "56" },
+        { q: "¿Capital de Francia?", a: "paris" },
+        { q: "¿Símbolo químico del Oro?", a: "au" },
+        { q: "¿Cuánto es 100 / 4?", a: "25" }
+    ];
+    let currentRapida = 0;
+    let timerRapida = 10;
+    let intervalRapida;
+
+    const btnStartRapidas = document.getElementById("btn-rapidas-start");
+    const inputRapidas = document.getElementById("rapidas-input"); 
+    const btnSubmitRapidas = document.getElementById("btn-rapidas-submit");
+    const msgRapidas = document.getElementById("rapidas-mensaje");
+
+    window.iniciarRapidas = () => {
+        btnStartRapidas.classList.add("d-none");
+        inputRapidas.disabled = false;
+        btnSubmitRapidas.disabled = false;
+        currentRapida = 0;
+        siguientePreguntaRapida();
+    };
+
+    const siguientePreguntaRapida = () => {
+        if (currentRapida >= preguntasRapidas.length) {
+            document.getElementById("rapidas-pregunta").innerText = "¡Desafío Completado!";
+            inputRapidas.disabled = true;
+            btnSubmitRapidas.disabled = true;
+            btnStartRapidas.classList.remove("d-none");
+            btnStartRapidas.innerText = "JUGAR DE NUEVO";
+            msgRapidas.innerText = "¡Superaste todas las preguntas!";
+            return;
+        }
+
+        document.getElementById("rapidas-pregunta").innerText = preguntasRapidas[currentRapida].q;
+        inputRapidas.value = "";
+        inputRapidas.focus();
+        msgRapidas.innerText = "";
+        
+        timerRapida = 10; 
+        document.getElementById("rapidas-timer").innerText = timerRapida;
+        
+        clearInterval(intervalRapida);
+        intervalRapida = setInterval(() => { 
+            timerRapida--;
+            document.getElementById("rapidas-timer").innerText = timerRapida;
+            if (timerRapida <= 0) {
+                msgRapidas.innerHTML = `<span class="text-danger">¡Tiempo agotado! La respuesta era: ${preguntasRapidas[currentRapida].a}</span>`;
+                currentRapida++;
+                setTimeout(siguientePreguntaRapida, 2000); 
+            }
+        }, 1000);
+    };
+
+    const verificarRapida = () => {
+        const respuesta = inputRapidas.value.trim().toLowerCase();
+        if (respuesta === preguntasRapidas[currentRapida].a) { 
+            clearInterval(intervalRapida);
+            msgRapidas.innerHTML = `<span class="text-success">¡Correcto!</span>`;
+            currentRapida++;
+            setTimeout(siguientePreguntaRapida, 1000); 
+        } else {
+            msgRapidas.innerHTML = `<span class="text-danger border border-danger p-1 rounded">Incorrecto, intenta de nuevo.</span>`;
+        }
+    };
+
+    btnSubmitRapidas.addEventListener("click", verificarRapida);
+    inputRapidas.addEventListener("keypress", (e) => { if (e.key === "Enter") verificarRapida() });
+
+
+    let tttBoard = ["", "", "", "", "", "", "", "", ""];
+    let tttTurno = "X";
+    let tttActivo = true;
+
+    window.initTicTacToe = () => {
+        tttBoard = ["", "", "", "", "", "", "", "", ""];
+        tttTurno = "X";
+        tttActivo = true;
+        document.getElementById("ttt-turno").innerText = tttTurno;
+        document.getElementById("ttt-mensaje").innerText = "";
+        
+        const boardDiv = document.getElementById("ttt-board");
+        boardDiv.innerHTML = "";
+        
+        for (let i = 0; i < 9; i++) {
+            const btn = document.createElement("button");
+            btn.className = "btn btn-outline-info fs-1 fw-bold p-3";
+            btn.style.height = "80px";
+            btn.onclick = () => jugarTicTacToe(i, btn);
+            boardDiv.appendChild(btn);
+        }
+    };
+
+    const jugarTicTacToe = (index, btn) => {
+        if (tttBoard[index] !== "" || !tttActivo) return;
+        
+        tttBoard[index] = tttTurno; 
+        btn.innerText = tttTurno;
+        btn.classList.replace("btn-outline-info", tttTurno === "X" ? "btn-warning" : "btn-danger");
+        btn.classList.add("text-white");
+        
+        if (verificarGanadorTTT()) {
+            document.getElementById("ttt-mensaje").innerHTML = `¡El jugador <span class="fw-bold text-white fs-3">${tttTurno}</span> HA GANADO!`; // Detección ganador [cite: 197]
+            tttActivo = false;
+            return;
+        }
+        if (!tttBoard.includes("")) {
+            document.getElementById("ttt-mensaje").innerText = "¡EMPATE!"; 
+            tttActivo = false;
+            return;
+        }
+        
+        tttTurno = tttTurno === "X" ? "O" : "X"; 
+        document.getElementById("ttt-turno").innerText = tttTurno;
+    };
+
+    const verificarGanadorTTT = () => {
+        const winConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], 
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], 
+            [0, 4, 8], [2, 4, 6]             
+        ];
+        return winConditions.some(c => tttBoard[c[0]] !== "" && tttBoard[c[0]] === tttBoard[c[1]] && tttBoard[c[1]] === tttBoard[c[2]]);
+    };
+
+
+    const canvas = document.getElementById("snake-canvas");
+    const ctx = canvas.getContext("2d");
+    const boxSize = 20;
+    let snake, snakeDir, food, snakeScore, snakeInterval;
+
+    window.initSnakeUI = () => {
+        clearInterval(snakeInterval);
+        ctx.fillStyle = "#212529";
+        ctx.fillRect(0, 0, canvas.width, canvas.height); 
+        document.getElementById("btn-snake-start").classList.remove("d-none");
+    };
+
+    window.iniciarSnake = () => {
+        document.getElementById("btn-snake-start").classList.add("d-none");
+        snake = [{ x: 9 * boxSize, y: 9 * boxSize }]; 
+        snakeDir = "RIGHT";
+        generarComidaSnake();
+        snakeScore = 0;
+        document.getElementById("snake-puntos").innerText = snakeScore;
+        
+        clearInterval(snakeInterval);
+        snakeInterval = setInterval(dibujarSnake, 120);
+    };
+
+    document.addEventListener("keydown", (e) => { 
+        if (e.key === "ArrowLeft" && snakeDir !== "RIGHT") snakeDir = "LEFT";
+        else if (e.key === "ArrowUp" && snakeDir !== "DOWN") snakeDir = "UP";
+        else if (e.key === "ArrowRight" && snakeDir !== "LEFT") snakeDir = "RIGHT";
+        else if (e.key === "ArrowDown" && snakeDir !== "UP") snakeDir = "DOWN";
+    });
+
+    const generarComidaSnake = () => {
+        food = {
+            x: Math.floor(Math.random() * 15) * boxSize,
+            y: Math.floor(Math.random() * 15) * boxSize
+        };
+    };
+
+    const dibujarSnake = () => {
+        ctx.fillStyle = "#212529";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < snake.length; i++) {
+            ctx.fillStyle = i === 0 ? "#0dcaf0" : "#ffffff";
+            ctx.fillRect(snake[i].x, snake[i].y, boxSize, boxSize);
+            ctx.strokeStyle = "#000";
+            ctx.strokeRect(snake[i].x, snake[i].y, boxSize, boxSize);
+        }
+
+        ctx.fillStyle = "#dc3545"; 
+        ctx.fillRect(food.x, food.y, boxSize, boxSize);
+
+        let snakeX = snake[0].x;
+        let snakeY = snake[0].y;
+
+        if (snakeDir === "LEFT") snakeX -= boxSize;
+        if (snakeDir === "UP") snakeY -= boxSize;
+        if (snakeDir === "RIGHT") snakeX += boxSize;
+        if (snakeDir === "DOWN") snakeY += boxSize;
+
+        if (snakeX === food.x && snakeY === food.y) {
+            snakeScore++;
+            document.getElementById("snake-puntos").innerText = snakeScore;
+            generarComidaSnake();
+        } else {
+            snake.pop();
+        }
+
+        const newHead = { x: snakeX, y: snakeY };
+
+        if (snakeX < 0 || snakeX >= canvas.width || snakeY < 0 || snakeY >= canvas.height || collisionSnake(newHead, snake)) {
+            clearInterval(snakeInterval);
+            alert(`¡Game Over! Puntos totales: ${snakeScore}`);
+            document.getElementById("btn-snake-start").classList.remove("d-none");
+            document.getElementById("btn-snake-start").innerText = "REINTENTAR";
+            return;
+        }
+
+        snake.unshift(newHead);
+    };
+
+    const collisionSnake = (head, array) => {
+        for (let i = 0; i < array.length; i++) {
+            if (head.x === array[i].x && head.y === array[i].y) return true;
+        }
+        return false;
+    };
+
+    let whackTimer = 20;
+    let whackScore = 0;
+    let whackInterval, whackTimerInterval;
+
+    window.initWhackUI = () => {
+        const board = document.getElementById("whack-board");
+        board.innerHTML = "";
+        for (let i = 0; i < 9; i++) {
+            const hole = document.createElement("div");
+            hole.className = "bg-secondary rounded-circle shadow border border-dark";
+            hole.style.height = "80px";
+            hole.id = `hole-${i}`;
+            hole.onclick = () => golpearMole(i);
+            board.appendChild(hole);
+        }
+        document.getElementById("btn-whack-start").classList.remove("d-none");
+    };
+
+    window.iniciarWhack = () => {
+        document.getElementById("btn-whack-start").classList.add("d-none");
+        whackScore = 0;
+        whackTimer = 20;
+        document.getElementById("whack-puntos").innerText = whackScore;
+        document.getElementById("whack-tiempo").innerText = whackTimer;
+        
+        clearInterval(whackInterval);
+        clearInterval(whackTimerInterval);
+
+        whackTimerInterval = setInterval(() => {
+            whackTimer--;
+            document.getElementById("whack-tiempo").innerText = whackTimer;
+            if (whackTimer <= 0) {
+                clearInterval(whackInterval);
+                clearInterval(whackTimerInterval);
+                alert(`¡Tiempo! Destruiste ${whackScore} virus.`);
+                initWhackUI();
+            }
+        }, 1000);
+
+        whackInterval = setInterval(mostrarMole, 800);
+    };
+
+    const mostrarMole = () => {
+        for (let i = 0; i < 9; i++) {
+            document.getElementById(`hole-${i}`).classList.replace("bg-danger", "bg-secondary");
+        }
+        const randomHole = Math.floor(Math.random() * 9);
+        document.getElementById(`hole-${randomHole}`).classList.replace("bg-secondary", "bg-danger"); // Aparición de objetivos [cite: 206]
+    };
+
+    const golpearMole = (index) => {
+        const hole = document.getElementById(`hole-${index}`);
+        if (hole.classList.contains("bg-danger")) { 
+            whackScore++; 
+            document.getElementById("whack-puntos").innerText = whackScore;
+            hole.classList.replace("bg-danger", "bg-success"); 
+            setTimeout(() => hole.classList.replace("bg-success", "bg-secondary"), 300);
+        }
+    };
+});
